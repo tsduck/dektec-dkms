@@ -1,0 +1,6 @@
+*.txt text
+*.html text
+*.sh text eol=lf
+.gitignore text
+.gitattributes text
+Makefile* text eol=lf
