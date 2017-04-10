@@ -1,0 +1,142 @@
+#!/bin/bash
+#
+#  Build script for the Linux DKMS for Dektec device drivers.
+#  Copyright (c) 2017, Thierry Lelegard
+#  All rights reserved.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions are met:
+#
+#  1. Redistributions of source code must retain the above copyright notice,
+#     this list of conditions and the following disclaimer.
+#  2. Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+#  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGE.
+#
+
+#-----------------------------------------------------------------------------
+# Default command line parameter values.
+#-----------------------------------------------------------------------------
+
+SCRIPT=$(basename $BASH_SOURCE)
+FORCE=false
+KEEP=false
+URL="http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz"
+OUTDIR=
+VERBOSE=false
+
+#-----------------------------------------------------------------------------
+# Display help text
+#-----------------------------------------------------------------------------
+
+showhelp()
+{
+    cat >&2 <<EOF
+
+Build the Linux DKMS package for Dektec device drivers. The type of package
+depends on the underlying operating system.
+
+Usage: $SCRIPT [options]
+
+Options:
+
+  -h
+  --help
+      Display this help text.
+
+  -f
+  --force
+      Force a download of the Dektec LinuxSDK, even if it is already present.
+      This makes sure that the latest version is used.
+
+  -k
+  --keep
+      Keep temporary files. By default, they are deleted.
+
+  -o directory
+  --output directory
+     Directory for the created files. By default, use the current directory.
+
+  -u "url"
+  --url "url"
+     URL of the Dektec LinuxSDK. Default:
+     $URL
+
+  -v
+  --verbose
+      Display verbose information.
+
+EOF
+    exit 1
+}
+
+#-----------------------------------------------------------------------------
+# Basic functions
+#-----------------------------------------------------------------------------
+
+error()   { echo >&2 "$SCRIPT: $*"; exit 1; }
+verbose() { $VERBOSE && echo "$SCRIPT: $*"; }
+usage()   { echo >&2 "invalid command, try \"$SCRIPT --help\""; exit 1; }
+
+#-----------------------------------------------------------------------------
+# Decode command line arguments
+#-----------------------------------------------------------------------------
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -f|--force)
+            FORCE=true
+            ;;
+        -h|--help)
+            showhelp
+            ;;
+        -k|--keep)
+            KEEP=true
+            ;;
+        -o|--output)
+            [[ $# -gt 1 ]] || usage; shift
+            OUTDIR=$1
+            ;;
+        -u|--url)
+            [[ $# -gt 1 ]] || usage; shift
+            URL=$1
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            ;;
+        *)
+            usage
+            ;;
+    esac
+    shift
+done
+
+# Move to the output directory.
+if [[ -n "$OUTDIR" ]]; then
+    [[ -d "$OUTDIR" ]] || error "Directory $OUTDIR not found"
+    cd "$OUTDIR" || exit 1
+    verbose "moving to $(pwd)"
+fi
+
+#-----------------------------------------------------------------------------
+# Download the LinuxSDK if not present.
+#-----------------------------------------------------------------------------
+
+[[ -n "$URL" ]] || error "empty URL specified"
+TARBALL=$(basename "$URL")
+if $FORCE || [[ ! -f "$TARBALL" ]]; then
+    verbose "downloading $URL"
+    wget "$URL" -O "$TARBALL" || exit 1
+fi

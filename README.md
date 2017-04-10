@@ -25,8 +25,8 @@ This project proposes scripts to create installable DKMS packages for Dektec
 device drivers on most Linux distros. Installers can be created for Red Hat,
 CentOS, Fedora (.rpm) or Ubuntu (.deb).
 
-This project contains build scripts only. No original Dektec software is provided.
-The build scripts automatically download the original
+This project contains build scripts only. No original Dektec software is provided
+here. The build scripts automatically download the original
 [LinuxSDK](http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz)
 from the Dektec Web site prior to build the packages.
 
@@ -53,7 +53,7 @@ Additionally, there is no unique URL per version of the LinuxSDK package. There 
 only one single URL pointing to the latest version of the LinuxSDK package. But the
 downloaded file has always the same name
 [LinuxSDK.tar.gz](http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz).
-So, there is no real way to identify the name (*Feb2017* for instance) of the
+There is no real way to identify the name (*Feb2017* for instance) in the
 downloaded file. We can only extract the distinct version numbers for DTAPI
 and the various device drivers.
 
@@ -62,16 +62,21 @@ As a compromise, we use the DTAPI version number to identify the DKMS package.
 
 ### Build
 
-To be continued.
+Simply run the provided script:
+
+```
+build-dektec-dkms
+```
 
 ### License
 
 The build scripts in this project are released under the terms of the license
-which is commonly referred to as "BSD 2-Clause License" or "Simplified BSD
-License" or "FreeBSD License". See http://opensource.org/licenses/BSD-2-Clause
+which is commonly referred to as
+"[BSD 2-Clause License](http://opensource.org/licenses/BSD-2-Clause)" or
+"Simplified BSD License" or "FreeBSD License".
 
-All Dektec software, including the drivers, are released under a specific license.
-See the file named "License" in the
+All Dektec software, including the drivers, are currently released under the
+same BSD 2-Clause License. See the file named "License" in the
 [LinuxSDK](http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz)
 package. The Dektec license file is included in the DKMS packages to comply with
 the terms of this license.
