@@ -26,15 +26,20 @@
 #  THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+SCRIPT=$(basename $BASH_SOURCE)
+SCRIPTDIR=$(cd $(dirname $BASH_SOURCE); pwd)
+
 #-----------------------------------------------------------------------------
 # Default command line parameter values.
 #-----------------------------------------------------------------------------
 
-SCRIPT=$(basename $BASH_SOURCE)
+CLEAN=false
 FORCE=false
-KEEP=false
-URL="http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz"
+INSTALL=false
+export KEEP=false
 OUTDIR=
+UNINSTALL=false
+URL="http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz"
 VERBOSE=false
 
 #-----------------------------------------------------------------------------
@@ -52,6 +57,9 @@ Usage: $SCRIPT [options]
 
 Options:
 
+  --clean
+      Do not build anything, just cleanup downloaded and temporary files.
+
   -h
   --help
       Display this help text.
@@ -61,6 +69,10 @@ Options:
       Force a download of the Dektec LinuxSDK, even if it is already present.
       This makes sure that the latest version is used.
 
+  --install
+      Directly install Dektec DKMS on the current system. Do not create a
+      package. This is useful on unsupported systems (no .rpm, no .deb).
+
   -k
   --keep
       Keep temporary files. By default, they are deleted.
@@ -68,6 +80,11 @@ Options:
   -o directory
   --output directory
      Directory for the created files. By default, use the current directory.
+
+  --uninstall
+      Directly uninstall Dektec DKMS from the current system. Do not properly
+      uninstall a package. This is useful on unsupported systems (no .rpm,
+      no .deb).
 
   -u "url"
   --url "url"
@@ -86,9 +103,14 @@ EOF
 # Basic functions
 #-----------------------------------------------------------------------------
 
-error()   { echo >&2 "$SCRIPT: $*"; exit 1; }
-verbose() { $VERBOSE && echo "$SCRIPT: $*"; }
-usage()   { echo >&2 "invalid command, try \"$SCRIPT --help\""; exit 1; }
+cleanexit() { $KEEP || [[ -z "$TMPDIR" ]] || rm -rf "$TMPDIR"; exit $1; }
+error()     { echo >&2 "$SCRIPT: $*"; cleanexit 1; }
+verbose()   { $VERBOSE && echo "$SCRIPT: $*"; }
+usage()     { echo >&2 "invalid command, try \"$SCRIPT --help\""; exit 1; }
+
+# Cleanup if interrupted.
+export TMPDIR=
+trap cleanexit SIGINT
 
 #-----------------------------------------------------------------------------
 # Decode command line arguments
@@ -96,18 +118,27 @@ usage()   { echo >&2 "invalid command, try \"$SCRIPT --help\""; exit 1; }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --clean)
+            CLEAN=true
+            ;;
         -f|--force)
             FORCE=true
             ;;
         -h|--help)
             showhelp
             ;;
+        --install)
+            INSTALL=true
+            ;;
         -k|--keep)
-            KEEP=true
+            export KEEP=true
             ;;
         -o|--output)
             [[ $# -gt 1 ]] || usage; shift
             OUTDIR=$1
+            ;;
+        --uninstall)
+            UNINSTALL=true
             ;;
         -u|--url)
             [[ $# -gt 1 ]] || usage; shift
@@ -123,20 +154,157 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+TARBALL=$(basename "$URL")
+SDKDIR=LinuxSDK
+DTAPI_H="$SDKDIR/DTAPI/Include/DTAPI.h"
+PKGDIR=packages
+export TMPDIR=tmp
+
+#-----------------------------------------------------------------------------
+# Special cleanup operation.
+#-----------------------------------------------------------------------------
+
+if $CLEAN; then
+    verbose "cleaning up non-original files"
+    rm -rf LinuxSDK* tmp "$TARBALL" "$SDKDIR" "$TMPDIR"
+    cleanexit 0
+fi
+
+#-----------------------------------------------------------------------------
+# Main operation.
+#-----------------------------------------------------------------------------
+
 # Move to the output directory.
 if [[ -n "$OUTDIR" ]]; then
     [[ -d "$OUTDIR" ]] || error "Directory $OUTDIR not found"
-    cd "$OUTDIR" || exit 1
+    cd "$OUTDIR" || cleanexit 1
     verbose "moving to $(pwd)"
 fi
 
-#-----------------------------------------------------------------------------
 # Download the LinuxSDK if not present.
-#-----------------------------------------------------------------------------
-
 [[ -n "$URL" ]] || error "empty URL specified"
-TARBALL=$(basename "$URL")
-if $FORCE || [[ ! -f "$TARBALL" ]]; then
+if $FORCE || [[ ! -e "$TARBALL" ]]; then
     verbose "downloading $URL"
-    wget "$URL" -O "$TARBALL" || exit 1
+    wget "$URL" -O "$TARBALL" || cleanexit 1
 fi
+
+# Expand the LinuxSDK if newer than the expanded files.
+if $FORCE || [[ ! -e "$DTAPI_H" || "$TARBALL" -nt "$DTAPI_H" ]]; then
+    verbose "expanding $TARBALL"
+    rm -rf "$SDKDIR"
+    tar xfz "$TARBALL"
+    # Make sure expanded files are more recent than the tarball.
+    find "$SDKDIR" -print0 | xargs -0 touch
+fi
+
+# The identification of the version of LinuxSDK is problematic. There is no
+# unique version number. A LinuxSDK is informally identified by a date such
+# as "Feb 2017" for instance. But this identification is not present inside
+# the distribution. Otherwise, there are distinct version numbers for DTAPI
+# and each driver: Dta, Dtu and DtaNw. As a compromise, we use the DTAPI
+# version number for the complete LinuxSDK distribution.
+VERSION_MAJOR=$(grep  '\#define *DTAPI_VERSION_MAJOR '  "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
+VERSION_MINOR=$(grep  '\#define *DTAPI_VERSION_MINOR '  "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
+VERSION_BUGFIX=$(grep '\#define *DTAPI_VERSION_BUGFIX ' "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
+VERSION_BUILD=$(grep  '\#define *DTAPI_VERSION_BUILD '  "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
+VERSION="$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUGFIX.$VERSION_BUILD"
+verbose "package version is $VERSION"
+
+SRCDIR="$TMPDIR/dektec-dkms-$VERSION"
+DKMS_DIR="$SRCDIR/dektec-$VERSION"
+DKMS_INSTALL="/usr/src/dektec-$VERSION"
+
+# Build DKMS directory.
+verbose "building DKMS structure in $DKMS_DIR"
+rm -rf "$TMPDIR"
+mkdir -p "$DKMS_DIR" || cleanexit 1
+sed -e "s/{{VERSION}}/$VERSION/g" dkms.conf.template >"$DKMS_DIR/dkms.conf"
+sed -e "s/{{VERSION}}/$VERSION/g" Makefile.template >"$DKMS_DIR/Makefile"
+cp -r "$SDKDIR/Common" "$SDKDIR/Drivers" "$SDKDIR/License" "$DKMS_DIR"
+make -C "$DKMS_DIR" --no-print-directory --silent clean
+find "$DKMS_DIR" -type f -print0 | xargs -0 chmod 644
+find "$DKMS_DIR" -type d -print0 | xargs -0 chmod 755
+
+# Put other files to install in the upper level directory.
+cp  "$SDKDIR/License" \
+    "$SDKDIR/Readme" \
+    "$SDKDIR/Drivers/Dta/Source/Linux/51-dta.rules" \
+    "$SDKDIR/Drivers/Dtu/Source/Linux/51-dtu.rules" \
+    "$SRCDIR"
+
+# Build a source tarball for the dektec-dkms package.
+mkdir -p "$PKGDIR" || cleanexit 1
+SRCTARBALL="$PKGDIR/dektec-dkms-$VERSION.tgz"
+verbose "creating $SRCTARBALL"
+tar czp -f "$SRCTARBALL" -C "$TMPDIR" --owner=0 --group=0 "dektec-dkms-$VERSION"
+
+# Special install operation.
+if $INSTALL; then
+    verbose "installing dkms dektec/$VERSION"
+    sudo rm -rf "$DKMS_INSTALL"
+    sudo cp -r "$DKMS_DIR" "$DKMS_INSTALL" || cleanexit 1
+    sudo install -m 644 -o root -g root "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" /etc/udev/rules.d/
+    sudo dkms install -m dektec -v "$VERSION"
+    cleanexit 0
+fi
+
+# Special uninstall operation.
+if $UNINSTALL; then
+    verbose "removing dkms dektec/$VERSION"
+    sudo rmmod DtaNw Dta Dtu
+    sudo dkms remove "dektec/$VERSION" --all
+    sudo rm -rf "$DKMS_INSTALL" /etc/udev/rules.d/51-dta.rules /etc/udev/rules.d/51-dtu.rules
+    cleanexit 0
+fi
+
+# Determine operating system type and version.
+FC_DISTRO=$(grep " release " /etc/fedora-release 2>/dev/null | sed -e 's/^.* release \([0-9\.]*\) .*$/\1/')
+RH_DISTRO=$(grep " release " /etc/redhat-release 2>/dev/null | sed -e 's/^.* release \([0-9\.]*\) .*$/\1/')
+UB_DISTRO=$([[ -f /etc/lsb-release ]] && source /etc/lsb-release 2>/dev/null && [[ "`tr A-Z a-z <<<$DISTRIB_ID`" = ubuntu ]] && echo $DISTRIB_RELEASE)
+DISTRO_PREFIX=
+DISTRO_VERSION=
+RPM_DISTRO=false
+DEB_DISTRO=false
+if [[ -n "$FC_DISTRO" ]]; then
+    DISTRO_PREFIX=".fc"
+    DISTRO_VERSION="$FC_DISTRO"
+    RPM_DISTRO=true
+elif [[ -n "$RH_DISTRO" ]]; then
+    DISTRO_PREFIX=".el"
+    DISTRO_VERSION="$RH_DISTRO"
+    RPM_DISTRO=true
+elif [[ -n "$UB_DISTRO" ]]; then
+    DISTRO_PREFIX=".ub"
+    DISTRO_VERSION="$UB_DISTRO"
+    DEB_DISTRO=true
+fi
+DISTRO="$DISTRO_PREFIX"$(sed <<<"$DISTRO_VERSION" -e 's/\..*//')
+verbose "Linux distro: $DISTRO, full version: $DISTRO_VERSION"
+! $RPM_DISTRO && ! $DEB_DISTRO && error "unsupported Linux distro"
+
+# Build RPM distro.
+if $RPM_DISTRO; then
+    verbose "building RPM package"
+
+    # User's rpmbuild environment:
+    RPMBUILD="$HOME/rpmbuild"
+    if [[ ! -d "$RPMBUILD" ]]; then
+        [[ -z "$(which rpmdev-setuptree 2>/dev/null)" ]] && error "rpmdev-setuptree not found, install package rpmdevtools"
+        rpmdev-setuptree
+        [[ ! -d "$RPMBUILD" ]] && error "$RPMBUILD not found"
+    fi
+
+    # Build RPM package.
+    RELEASE=0
+    cp -f "$SRCTARBALL" $RPMBUILD/SOURCES/
+    rpmbuild -ba -D "version $VERSION" -D "release $RELEASE$DISTRO" $SCRIPTDIR/dektec-dkms.spec
+
+    # Collect package files.
+    cp -f \
+        "$RPMBUILD/RPMS/noarch/dektec-dkms-$VERSION-$RELEASE$DISTRO.noarch.rpm" \
+        "$RPMBUILD/SRPMS/dektec-dkms-$VERSION-$RELEASE$DISTRO.src.rpm" \
+        "$PKGDIR"
+fi
+
+# Final cleanup.
+cleanexit 0
