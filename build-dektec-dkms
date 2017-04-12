@@ -34,13 +34,16 @@ SCRIPTDIR=$(cd $(dirname $BASH_SOURCE); pwd)
 #-----------------------------------------------------------------------------
 
 CLEAN=false
+DOWNLOAD_ONLY=false
 FORCE=false
 INSTALL=false
 export KEEP=false
 OUTDIR=
+PREPARE_ONLY=false
 UNINSTALL=false
 URL="http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz"
 VERBOSE=false
+PATCH_OPTION="--silent"
 
 #-----------------------------------------------------------------------------
 # Display help text
@@ -57,8 +60,13 @@ Usage: $SCRIPT [options]
 
 Options:
 
+  -c
   --clean
       Do not build anything, just cleanup downloaded and temporary files.
+
+  -d
+  --download
+      Only download and expand the Dektec LinuxSDK. Do not build DKMS packages.
 
   -h
   --help
@@ -80,6 +88,11 @@ Options:
   -o directory
   --output directory
      Directory for the created files. By default, use the current directory.
+
+  -p
+  --prepare
+      Only prepare the DKMS file structure in the temporary directory.
+      Do not build DKMS packages, do not clean up files.
 
   --uninstall
       Directly uninstall Dektec DKMS from the current system. Do not properly
@@ -118,8 +131,11 @@ trap cleanexit SIGINT
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --clean)
+        -c|--clean)
             CLEAN=true
+            ;;
+        -d|--download)
+            DOWNLOAD_ONLY=true
             ;;
         -f|--force)
             FORCE=true
@@ -137,6 +153,10 @@ while [[ $# -gt 0 ]]; do
             [[ $# -gt 1 ]] || usage; shift
             OUTDIR=$1
             ;;
+        -p|--prepare)
+            PREPARE_ONLY=true
+            export KEEP=true
+            ;;
         --uninstall)
             UNINSTALL=true
             ;;
@@ -146,6 +166,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -v|--verbose)
             VERBOSE=true
+            PATCH_OPTION=
             ;;
         *)
             usage
@@ -214,6 +235,9 @@ SRCDIR="$TMPDIR/dektec-dkms-$VERSION"
 DKMS_DIR="$SRCDIR/dektec-$VERSION"
 DKMS_INSTALL="/usr/src/dektec-$VERSION"
 
+# In case of "download only", we are done.
+$DOWNLOAD_ONLY && cleanexit 0
+
 # Build DKMS directory.
 verbose "building DKMS structure in $DKMS_DIR"
 rm -rf "$TMPDIR"
@@ -231,6 +255,16 @@ cp  "$SDKDIR/License" \
     "$SDKDIR/Drivers/Dta/Source/Linux/51-dta.rules" \
     "$SDKDIR/Drivers/Dtu/Source/Linux/51-dtu.rules" \
     "$SRCDIR"
+
+# In case of "prepare only", we are done.
+$PREPARE_ONLY && cleanexit 0
+
+# If there is a patch for this version of the package, apply it.
+PATCH="$SCRIPTDIR/patches/dektec-dkms-$VERSION.patch"
+if [[ -e "$PATCH" ]]; then
+    verbose "applying patch $PATCH"
+    patch -d "$SRCDIR" -p1 $PATCH_OPTION <"$PATCH"
+fi
 
 # Build a source tarball for the dektec-dkms package.
 mkdir -p "$PKGDIR" || cleanexit 1
@@ -297,7 +331,7 @@ if $RPM_DISTRO; then
     # Build RPM package.
     RELEASE=0
     cp -f "$SRCTARBALL" $RPMBUILD/SOURCES/
-    rpmbuild -ba -D "version $VERSION" -D "release $RELEASE$DISTRO" $SCRIPTDIR/dektec-dkms.spec
+    rpmbuild -ba -D "version $VERSION" -D "release $RELEASE$DISTRO" "$SCRIPTDIR/dektec-dkms.spec"
 
     # Collect package files.
     cp -f \

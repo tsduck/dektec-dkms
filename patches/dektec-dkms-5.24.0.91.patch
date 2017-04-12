@@ -1,0 +1,27 @@
+diff -Naur dektec-dkms-5.24.0.91/dektec-5.24.0.91/Drivers/Dta/Source/HdmiTx.c dektec-dkms-5.24.0.91.fixed/dektec-5.24.0.91/Drivers/Dta/Source/HdmiTx.c
+--- dektec-dkms-5.24.0.91/dektec-5.24.0.91/Drivers/Dta/Source/HdmiTx.c	2017-04-12 12:06:33.221989542 +0200
++++ dektec-dkms-5.24.0.91.fixed/dektec-5.24.0.91/Drivers/Dta/Source/HdmiTx.c	2017-04-12 14:00:43.007920283 +0200
+@@ -2583,7 +2583,7 @@
+     Status = DtDpcInit(&pHdmiTx->m_HotplugDpc, DtHdmiTxHotplugDpc, TRUE);
+     if (!DT_SUCCESS(Status))
+         return Status;
+-    Status = DtWorkItemInit(&pHdmiTx->m_HotplugWorkItem, DtHdmiTxHotplugWorkItem, TRUE,
++    Status = DtWorkItemInit(&pHdmiTx->m_HotplugWorkItem, (pDtWorkItemWorker)DtHdmiTxHotplugWorkItem, TRUE,
+                                                           &pHdmiTx->m_pDvcData->m_Device);
+     if (!DT_SUCCESS(Status))
+         return Status;
+diff -Naur dektec-dkms-5.24.0.91/dektec-5.24.0.91/Drivers/DtaNw/Source/Linux/DtaNwIal.c dektec-dkms-5.24.0.91.fixed/dektec-5.24.0.91/Drivers/DtaNw/Source/Linux/DtaNwIal.c
+--- dektec-dkms-5.24.0.91/dektec-5.24.0.91/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2017-04-12 12:06:33.263989715 +0200
++++ dektec-dkms-5.24.0.91.fixed/dektec-5.24.0.91/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2017-04-12 14:10:53.311051226 +0200
+@@ -291,7 +291,11 @@
+         pDvcData->m_IalData.m_NetStats.tx_errors++;
+         return 1;
+     }
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
+     pDevice->trans_start = jiffies;
++#else
++    netif_trans_update(pDevice);
++#endif
+ 
+     dev_kfree_skb(pSkb);
+     return 0;
