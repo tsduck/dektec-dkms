@@ -120,10 +120,6 @@ Options:
   --keep
       Keep temporary files. By default, they are deleted.
 
-  -o directory
-  --output directory
-     Directory for the created files. By default, use the current directory.
-
   -p
   --prepare
       Only prepare the DKMS file structure in the temporary directory.
