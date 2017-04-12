@@ -37,7 +37,7 @@ cp -r dektec-%{version} $RPM_BUILD_ROOT/usr/src
 install -m 644 51-dta.rules 51-dtu.rules $RPM_BUILD_ROOT/etc/udev/rules.d
 
 %post
-[[ -n $(/usr/sbin/dkms status | grep dektec | grep "%{version}" | wc -l) ]] && /usr/sbin/dkms add -m dektec -v "%{version}"
+[[ $(/usr/sbin/dkms status | grep dektec | grep "%{version}" | wc -l) -eq 0 ]] && /usr/sbin/dkms add -m dektec -v "%{version}"
 /usr/sbin/dkms build -m dektec -v "%{version}"
 /usr/sbin/dkms install -m dektec -v "%{version}"
 exit 0

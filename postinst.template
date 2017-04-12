@@ -1,0 +1,18 @@
+#!/bin/bash
+# QtlMovie post-installation script on Ubuntu and Debian systems.
+
+if [[ "$1" = "configure" ]]; then
+    # Fix file permissions and ownership.
+    chown -R root:root /usr/src/dektec-{{VERSION}} /etc/udev/rules.d/51-dta.rules /etc/udev/rules.d/51-dtu.rules /usr/share/doc/dektec-dkms
+    find /usr/src/dektec-{{VERSION}} -type f -print0 | xargs -0 chmod 644
+    find /usr/src/dektec-{{VERSION}} -type d -print0 | xargs -0 chmod 755
+    chmod 755 /usr/share/doc/dektec-dkms
+    chmod 644 /etc/udev/rules.d/51-dta.rules /etc/udev/rules.d/51-dtu.rules /usr/share/doc/dektec-dkms/*
+
+    # Build the initial version of the driver.
+    [[ $(/usr/sbin/dkms status | grep dektec | grep "{{VERSION}}" | wc -l) -eq 0 ]] && /usr/sbin/dkms add -m dektec -v "{{VERSION}}"
+    /usr/sbin/dkms build -m dektec -v "{{VERSION}}"
+    /usr/sbin/dkms install -m dektec -v "{{VERSION}}"
+fi
+
+exit 0

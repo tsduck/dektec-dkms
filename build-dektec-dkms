@@ -340,5 +340,27 @@ if $RPM_DISTRO; then
         "$PKGDIR"
 fi
 
+# Build DEB distro.
+if $DEB_DISTRO; then
+    verbose "building DEB package"
+
+    # Root of .deb package build.
+    DEBDIR="$TMPDIR/deb"
+    rm -rf "$DEBDIR"
+
+    # Build file structure of the package.
+    mkdir -p -m 0755 "$DEBDIR/DEBIAN" "$DEBDIR/usr/src" "$DEBDIR/etc/udev/rules.d" "$DEBDIR/usr/share/doc/dektec-dkms"
+    for f in control postinst prerm; do
+        sed -e "s/{{VERSION}}/$VERSION/g" $f.template >"$DEBDIR/DEBIAN/$f"
+    done
+    chmod 755 "$DEBDIR/DEBIAN/postinst" "$DEBDIR/DEBIAN/prerm"
+    cp -rp "$SRCDIR/dektec-$VERSION" "$DEBDIR/usr/src"
+    install -m 644 "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" "$DEBDIR/etc/udev/rules.d"
+    install -m 644 "$SRCDIR/Readme" "$SRCDIR/License" "$DEBDIR/usr/share/doc/dektec-dkms"
+
+    # Build the binary package
+    dpkg --build "$DEBDIR" "$PKGDIR"
+fi
+
 # Final cleanup.
 cleanexit 0
