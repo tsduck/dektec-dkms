@@ -60,14 +60,6 @@ and the various device drivers.
 For each version of the LinuxSDK package, we produce one DKMS package.
 As a compromise, we use the DTAPI version number to identify the DKMS package.
 
-### Build
-
-Simply run the provided script:
-
-```
-build-dektec-dkms
-```
-
 ### License
 
 The build scripts in this project are released under the terms of the license
@@ -80,3 +72,74 @@ same BSD 2-Clause License. See the file named "License" in the
 [LinuxSDK](http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz)
 package. The Dektec license file is included in the DKMS packages to comply with
 the terms of this license.
+
+### Build
+
+Simply run the provided script:
+
+```
+build-dektec-dkms
+```
+
+The generated package is created in the subdirectory `packages`. On Fedora,
+Red Hat Entreprise Linux, CentOS and other clones, the package is a `.rpm`
+file. On Ubuntu systems, the package is a `.deb` file.
+
+### Complete documentation of the build script
+
+```
+Build the Linux DKMS package for Dektec device drivers. The type of package
+depends on the underlying operating system.
+
+Usage: build-dektec-dkms [options]
+
+Options:
+
+  -c
+  --clean
+      Do not build anything, just cleanup downloaded and temporary files.
+
+  -d
+  --download
+      Only download and expand the Dektec LinuxSDK. Do not build DKMS packages.
+
+  -h
+  --help
+      Display this help text.
+
+  -f
+  --force
+      Force a download of the Dektec LinuxSDK, even if it is already present.
+      This makes sure that the latest version is used.
+
+  --install
+      Directly install Dektec DKMS on the current system. Do not create a
+      package. This is useful on unsupported systems (no .rpm, no .deb).
+
+  -k
+  --keep
+      Keep temporary files. By default, they are deleted.
+
+  -o directory
+  --output directory
+     Directory for the created files. By default, use the current directory.
+
+  -p
+  --prepare
+      Only prepare the DKMS file structure in the temporary directory.
+      Do not build DKMS packages, do not clean up files.
+
+  --uninstall
+      Directly uninstall Dektec DKMS from the current system. Do not properly
+      uninstall a package. This is useful on unsupported systems (no .rpm,
+      no .deb).
+
+  -u "url"
+  --url "url"
+     URL of the Dektec LinuxSDK. Default:
+     http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz
+
+  -v
+  --verbose
+      Display verbose information.
+```
