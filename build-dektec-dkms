@@ -263,7 +263,7 @@ if $INSTALL; then
     sudo rm -rf "$DKMS_INSTALL"
     sudo cp -r "$DKMS_DIR" "$DKMS_INSTALL" || cleanexit 1
     sudo install -m 644 -o root -g root "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" /etc/udev/rules.d/
-    sudo dkms install -m dektec -v "$VERSION"
+    sudo dkms install -m dektec -v "$VERSION" --force
     cleanexit 0
 fi
 

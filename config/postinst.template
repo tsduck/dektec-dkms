@@ -12,7 +12,7 @@ if [[ "$1" = "configure" ]]; then
     # Build the initial version of the driver.
     [[ $(/usr/sbin/dkms status | grep dektec | grep "{{VERSION}}" | wc -l) -eq 0 ]] && /usr/sbin/dkms add -m dektec -v "{{VERSION}}"
     /usr/sbin/dkms build -m dektec -v "{{VERSION}}"
-    /usr/sbin/dkms install -m dektec -v "{{VERSION}}"
+    /usr/sbin/dkms install -m dektec -v "{{VERSION}}" --force
 fi
 
 exit 0
