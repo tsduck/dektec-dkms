@@ -2,9 +2,10 @@
 .gitattributes text
 *.md text
 *.txt text
-*.spec text
 *.html text
+*.spec text eol=lf
 *.patch text eol=lf
 *.sh text eol=lf
 *.template text eol=lf
 Makefile* text eol=lf
+build-dektec-dkms text eol=lf
