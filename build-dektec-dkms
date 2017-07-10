@@ -40,7 +40,7 @@ INSTALL=false
 export KEEP=false
 PREPARE_ONLY=false
 UNINSTALL=false
-URL="http://www.dektec.com/products/SDK/DTAPI/Downloads/LinuxSDK.tar.gz"
+URL="http://www.dektec.com/products/SDK/DTAPI/Downloads/LatestLinuxSDK"
 VERBOSE=false
 PATCH_OPTION="--silent"
 
@@ -167,19 +167,25 @@ while [[ $# -gt 0 ]]; do
 done
 
 CONFDIR="$SCRIPTDIR/config"
-TARBALL="$SCRIPTDIR/"$(basename "$URL")
 SDKDIR="$SCRIPTDIR/LinuxSDK"
 DTAPI_H="$SDKDIR/DTAPI/Include/DTAPI.h"
 PKGDIR="$SCRIPTDIR/packages"
 export TMPDIR="$SCRIPTDIR/tmp"
 
+# The download URL is a generic one ending in ../LatestLinuxSDK.
+# The actual file is redirected as ../LinuxSDK_v5.06.2017.0.tar.gz for instance.
+# The file VERSION is created to contain the actual file name.
+
+TARBASE="$SCRIPTDIR/LinuxSDK"
+VERSFILE="$SCRIPTDIR/VERSION"
+    
 #-----------------------------------------------------------------------------
 # Special cleanup operation.
 #-----------------------------------------------------------------------------
 
 if $CLEAN; then
     verbose "cleaning up non-original files"
-    rm -rf "$TARBALL" "$SDKDIR" "$TMPDIR"
+    rm -rf "${TARBASE}*" "$SDKDIR" "$TMPDIR" "$VERSFILE"
     cleanexit 0
 fi
 
@@ -189,10 +195,24 @@ fi
 
 # Download the LinuxSDK if not present.
 [[ -n "$URL" ]] || error "empty URL specified"
-if $FORCE || [[ ! -e "$TARBALL" ]]; then
+TARNAME=$(cat "$VERSFILE" 2>/dev/null)
+TARBALL="$SCRIPTDIR/$TARNAME"
+if $FORCE || [[ -z "$TARNAME" ]] || [[ ! -e "$TARBALL" ]]; then
     verbose "downloading $URL"
-    wget "$URL" -O "$TARBALL" || cleanexit 1
+    mkdir -p "$TMPDIR"
+    # Do not download/redirect, just get the HTTP headers
+    curl -D "$TMPDIR/HEADERS" "$URL" || cleanexit 1
+    TARNAME=$(grep -i Location: "$TMPDIR/HEADERS" | sed -e 's/.*: *//' -e 's/.*\///' -e 's/\r//g')
+    TARBALL="$SCRIPTDIR/$TARNAME"
+    [[ -n "$TARNAME" ]] || error "relocation header not found"
+    verbose "actual file name: $TARNAME"
+    echo "$TARNAME" >"$VERSFILE"
+    curl -L "$URL" -o "$TARBALL" || cleanexit 1
 fi
+
+# Get the Linux SDL version from the file name.
+VERSION=$(sed <<<$TARNAME -e 's/LinuxSDK_v//' -e 's/\.tar\.gz//g' -e 's/\.tgz//g')
+verbose "package version is $VERSION"
 
 # Expand the LinuxSDK if newer than the expanded files.
 if $FORCE || [[ ! -e "$DTAPI_H" || "$TARBALL" -nt "$DTAPI_H" ]]; then
@@ -202,19 +222,6 @@ if $FORCE || [[ ! -e "$DTAPI_H" || "$TARBALL" -nt "$DTAPI_H" ]]; then
     # Make sure expanded files are more recent than the tarball.
     find "$SDKDIR" -print0 | xargs -0 touch
 fi
-
-# The identification of the version of LinuxSDK is problematic. There is no
-# unique version number. A LinuxSDK is informally identified by a date such
-# as "Feb 2017" for instance. But this identification is not present inside
-# the distribution. Otherwise, there are distinct version numbers for DTAPI
-# and each driver: Dta, Dtu and DtaNw. As a compromise, we use the DTAPI
-# version number for the complete LinuxSDK distribution.
-VERSION_MAJOR=$(grep  '\#define *DTAPI_VERSION_MAJOR '  "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
-VERSION_MINOR=$(grep  '\#define *DTAPI_VERSION_MINOR '  "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
-VERSION_BUGFIX=$(grep '\#define *DTAPI_VERSION_BUGFIX ' "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
-VERSION_BUILD=$(grep  '\#define *DTAPI_VERSION_BUILD '  "$DTAPI_H" | sed -e 's/ *$//' -e 's/.* //')
-VERSION="$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUGFIX.$VERSION_BUILD"
-verbose "package version is $VERSION"
 
 SRCDIR="$TMPDIR/dektec-dkms-$VERSION"
 DKMS_DIR="$SRCDIR/dektec-$VERSION"

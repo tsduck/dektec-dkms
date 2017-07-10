@@ -10,6 +10,7 @@ Source0:       dektec-dkms-%{version}.tgz
 BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:     noarch
 Requires:      dkms
+Requires:      elfutils-libelf-devel
 
 %description
 Provide the source code and DKMS setup for the kernel modules of the Dektec

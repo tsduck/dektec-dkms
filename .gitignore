@@ -1,5 +1,7 @@
 packages
 LinuxSDK
+LatestLinuxSDK
+VERSION
 tmp
 *.deb
 *.rpm
