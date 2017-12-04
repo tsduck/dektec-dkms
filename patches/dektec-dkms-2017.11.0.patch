@@ -1,0 +1,12 @@
+diff -Naur dektec-dkms-2017.11.0/dektec-2017.11.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c dektec-dkms-2017.11.0.fixed/dektec-2017.11.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c
+--- dektec-dkms-2017.11.0/dektec-2017.11.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2017-12-05 18:37:44.589382027 +0100
++++ dektec-dkms-2017.11.0.fixed/dektec-2017.11.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2017-12-05 18:39:50.652382027 +0100
+@@ -291,7 +291,7 @@
+         pDvcData->m_IalData.m_NetStats.tx_errors++;
+         return 1;
+     }
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0)
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)) || (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 7, 0))
+     pDevice->trans_start = jiffies;
+ #else
+     netif_trans_update(pDevice);

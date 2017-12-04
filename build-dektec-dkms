@@ -40,7 +40,7 @@ INSTALL=false
 export KEEP=false
 PREPARE_ONLY=false
 UNINSTALL=false
-URL="http://www.dektec.com/products/SDK/DTAPI/Downloads/LatestLinuxSDK"
+URL="https://www.dektec.com/products/SDK/DTAPI/Downloads/LatestLinuxSDK"
 VERBOSE=false
 PATCH_OPTION="--silent"
 
