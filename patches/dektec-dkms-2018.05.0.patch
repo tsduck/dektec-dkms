@@ -1,0 +1,15 @@
+diff -Naur dektec-dkms-2018.05.0/dektec-2018.05.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c dektec-dkms-2018.05.0.fixed/dektec-2018.05.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c
+--- dektec-dkms-2018.05.0/dektec-2018.05.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2018-05-17 17:22:02.926192932 +0200
++++ dektec-dkms-2018.05.0.fixed/dektec-2018.05.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2018-05-17 17:39:47.589258433 +0200
+@@ -772,9 +772,10 @@
+ 
+     // Give packet to the network layer. Network layer will cleanup the packet
+     netif_rx_ni(pSkb);
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)) || (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0))
+     // last_rx is removed from the net_device struct starting from Linux 
+     // kernel version >=4.11 and is not replaced by something else. 
++    // The post-4.11 updates have been back-ported to 3.x starting with 3.10.
+     pDvcData->m_IalData.m_pNwDevice->last_rx = jiffies;
+ #endif
+     pDvcData->m_IalData.m_NetStats.rx_bytes+= PacketLength;

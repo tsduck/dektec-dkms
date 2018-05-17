@@ -13,18 +13,19 @@ Patch creation guidelines:
 
 - Try to compile the drivers:
 
-  $ make -C tmp/dektec-dkms-<VERSION>/dektec-<VERSION>
+  $ VERSION=2018.05.0
+  $ make -C tmp/dektec-dkms-$VERSION/dektec-$VERSION
 
 - In case of errors, cleanup and duplicate the directory tree:
 
-  $ make clean -C tmp/dektec-dkms-<VERSION>/dektec-<VERSION>
-  $ cp -r tmp/dektec-dkms-<VERSION> tmp/dektec-dkms-<VERSION>.fixed
+  $ make clean -C tmp/dektec-dkms-$VERSION/dektec-$VERSION
+  $ cp -r tmp/dektec-dkms-$VERSION tmp/dektec-dkms-$VERSION.fixed
 
-- Fix bugs in dektec-dkms-<VERSION>.fixed. Make sure it compiles correctly. Be
+- Fix bugs in dektec-dkms-$VERSION.fixed. Make sure it compiles correctly. Be
   sure to modify the code so that it compiles on all versions of the kernel.
 
 - Generate the patch file
 
-  $ make clean -C tmp/dektec-dkms-<VERSION>/dektec-<VERSION>
-  $ make clean -C tmp/dektec-dkms-<VERSION>.fixed/dektec-<VERSION>
-  $ (cd tmp; diff -Naur dektec-dkms-<VERSION> dektec-dkms-<VERSION>.fixed) >patches/dektec-dkms-<VERSION>.patch
+  $ make clean -C tmp/dektec-dkms-$VERSION/dektec-$VERSION
+  $ make clean -C tmp/dektec-dkms-$VERSION.fixed/dektec-$VERSION
+  $ (cd tmp; diff -Naur dektec-dkms-$VERSION dektec-dkms-$VERSION.fixed) >patches/dektec-dkms-$VERSION.patch
