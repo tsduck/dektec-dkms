@@ -40,7 +40,6 @@ INSTALL=false
 export KEEP=false
 PREPARE_ONLY=false
 UNINSTALL=false
-URL="https://www.dektec.com/products/SDK/DTAPI/Downloads/LatestLinuxSDK"
 VERBOSE=false
 PATCH_OPTION="--silent"
 
@@ -94,11 +93,6 @@ Options:
       uninstall a package. This is useful on unsupported systems (no .rpm,
       no .deb).
 
-  -u "url"
-  --url "url"
-     URL of the Dektec LinuxSDK. Default:
-     $URL
-
   -v
   --verbose
       Display verbose information.
@@ -151,10 +145,6 @@ while [[ $# -gt 0 ]]; do
         --uninstall)
             UNINSTALL=true
             ;;
-        -u|--url)
-            [[ $# -gt 1 ]] || usage; shift
-            URL=$1
-            ;;
         -v|--verbose)
             VERBOSE=true
             PATCH_OPTION=
@@ -172,11 +162,7 @@ DTAPI_H="$SDKDIR/DTAPI/Include/DTAPI.h"
 PKGDIR="$SCRIPTDIR/packages"
 export TMPDIR="$SCRIPTDIR/tmp"
 
-# The download URL is a generic one ending in ../LatestLinuxSDK.
-# The actual file is redirected as ../LinuxSDK_v5.06.2017.0.tar.gz for instance.
-# The file VERSION is created to contain the actual file name.
-
-TARBASE="$SCRIPTDIR/LinuxSDK"
+# Text file containing the name of the LinuxSDK tarball.
 VERSFILE="$SCRIPTDIR/VERSION"
     
 #-----------------------------------------------------------------------------
@@ -185,7 +171,7 @@ VERSFILE="$SCRIPTDIR/VERSION"
 
 if $CLEAN; then
     verbose "cleaning up non-original files"
-    rm -rf "${TARBASE}*" "$SDKDIR" "$TMPDIR" "$VERSFILE"
+    rm -rf "$SCRIPTDIR"/LinuxSDK* "$SDKDIR" "$TMPDIR" "$VERSFILE"
     cleanexit 0
 fi
 
@@ -194,20 +180,18 @@ fi
 #-----------------------------------------------------------------------------
 
 # Download the LinuxSDK if not present.
-[[ -n "$URL" ]] || error "empty URL specified"
 TARNAME=$(cat "$VERSFILE" 2>/dev/null)
 TARBALL="$SCRIPTDIR/$TARNAME"
 if $FORCE || [[ -z "$TARNAME" ]] || [[ ! -e "$TARBALL" ]]; then
+    URL=$($SCRIPTDIR/get-dektec-linux-sdk-url.sh)
+    [[ -n "$URL" ]] || error "got empty URL"
     verbose "downloading $URL"
     mkdir -p "$TMPDIR"
-    # Do not download/redirect, just get the HTTP headers
-    curl -D "$TMPDIR/HEADERS" "$URL" || cleanexit 1
-    TARNAME=$(grep -i Location: "$TMPDIR/HEADERS" | sed -e 's/.*: *//' -e 's/.*\///' -e 's/\r//g')
+    TARNAME=$(basename "$URL")
     TARBALL="$SCRIPTDIR/$TARNAME"
-    [[ -n "$TARNAME" ]] || error "relocation header not found"
     verbose "actual file name: $TARNAME"
     echo "$TARNAME" >"$VERSFILE"
-    curl -L "$URL" -o "$TARBALL" || cleanexit 1
+    curl --location "$URL" -o "$TARBALL" || cleanexit 1
 fi
 
 # Get the Linux SDL version from the file name.
