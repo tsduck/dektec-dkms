@@ -4,7 +4,7 @@ Architecture: all
 Maintainer: DekTec Digital Video B.V. <info@dektec.com>
 Section: free/kernel
 Priority: optional
-Depends: dkms, linux-headers
+Depends: dkms, linux-headers-amd64 | linux-headers-generic | linux-headers
 Description: Source code and DKMS setup for the Dektec device drivers.
  This package installs the source code and DKMS setup for the kernel modules
  of the Dektec device drivers. Each time the kernel is upgraded, the Dektec
