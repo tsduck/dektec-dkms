@@ -15,7 +15,7 @@ Requires:      elfutils-libelf-devel
 %description
 Provide the source code and DKMS setup for the kernel modules of the Dektec
 device drivers. Each time the kernel is upgraded, the Dektec modules are
-automatically recompiled. The provided drivers are Dta, DtaNw, Dtu.
+automatically recompiled. The provided drivers are Dta, DtaNw, Dtu, DtPcie.
 
 Dektec is a manufacturer of PC add-on cards, USB devices, IP converters and
 software for the professional digital-television market. Their products are
@@ -35,7 +35,7 @@ This is an independent packaging of the Dektec original drivers.
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/src $RPM_BUILD_ROOT/etc/udev/rules.d
 cp -r dektec-%{version} $RPM_BUILD_ROOT/usr/src
-install -m 644 51-dta.rules 51-dtu.rules $RPM_BUILD_ROOT/etc/udev/rules.d
+install -m 644 51-dta.rules 51-dtu.rules 51-dtpcie.rules $RPM_BUILD_ROOT/etc/udev/rules.d
 
 %post
 [[ $(/usr/sbin/dkms status | grep dektec | grep "%{version}" | wc -l) -eq 0 ]] && /usr/sbin/dkms add -m dektec -v "%{version}"
@@ -55,4 +55,5 @@ rm -rf $RPM_BUILD_ROOT
 /usr/src/dektec-%{version}
 /etc/udev/rules.d/51-dta.rules
 /etc/udev/rules.d/51-dtu.rules
+/etc/udev/rules.d/51-dtpcie.rules
 %doc Readme License

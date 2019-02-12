@@ -230,6 +230,7 @@ cp  "$SDKDIR/License" \
     "$SDKDIR/Readme" \
     "$SDKDIR/Drivers/Dta/Source/Linux/51-dta.rules" \
     "$SDKDIR/Drivers/Dtu/Source/Linux/51-dtu.rules" \
+    "$SDKDIR/Drivers/DtPcie/Source/Linux/51-dtpcie.rules" \
     "$SRCDIR"
 
 # In case of "prepare only", we are done.
@@ -253,7 +254,7 @@ if $INSTALL; then
     verbose "installing dkms dektec/$VERSION"
     sudo rm -rf "$DKMS_INSTALL"
     sudo cp -r "$DKMS_DIR" "$DKMS_INSTALL" || cleanexit 1
-    sudo install -m 644 -o root -g root "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" /etc/udev/rules.d/
+    sudo install -m 644 -o root -g root "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" "$SRCDIR/51-dtpcie.rules" /etc/udev/rules.d/
     sudo dkms install -m dektec -v "$VERSION" --force
     cleanexit 0
 fi
@@ -261,9 +262,9 @@ fi
 # Special uninstall operation.
 if $UNINSTALL; then
     verbose "removing dkms dektec/$VERSION"
-    sudo rmmod DtaNw Dta Dtu
+    sudo rmmod DtaNw Dta Dtu DtPcie
     sudo dkms remove "dektec/$VERSION" --all
-    sudo rm -rf "$DKMS_INSTALL" /etc/udev/rules.d/51-dta.rules /etc/udev/rules.d/51-dtu.rules
+    sudo rm -rf "$DKMS_INSTALL" /etc/udev/rules.d/51-dta.rules /etc/udev/rules.d/51-dtu.rules /etc/udev/rules.d/51-dtpcie.rules
     cleanexit 0
 fi
 
@@ -336,7 +337,7 @@ if $DEB_DISTRO; then
     done
     chmod 755 "$DEBDIR/DEBIAN/postinst" "$DEBDIR/DEBIAN/prerm"
     cp -rp "$SRCDIR/dektec-$VERSION" "$DEBDIR/usr/src"
-    install -m 644 "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" "$DEBDIR/etc/udev/rules.d"
+    install -m 644 "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" "$SRCDIR/51-dtpcie.rules" "$DEBDIR/etc/udev/rules.d"
     install -m 644 "$SRCDIR/Readme" "$SRCDIR/License" "$DEBDIR/usr/share/doc/dektec-dkms"
 
     # Build the binary package

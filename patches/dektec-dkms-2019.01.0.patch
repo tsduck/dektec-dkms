@@ -1,0 +1,53 @@
+diff -Naur dektec-dkms-2019.01.0/dektec-2019.01.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c dektec-dkms-2019.01.0.fixed/dektec-2019.01.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c
+--- dektec-dkms-2019.01.0/dektec-2019.01.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2019-02-13 16:15:43.437810888 +0100
++++ dektec-dkms-2019.01.0.fixed/dektec-2019.01.0/Drivers/DtaNw/Source/Linux/DtaNwIal.c	2019-02-13 16:29:19.038926498 +0100
+@@ -79,8 +79,10 @@
+ #endif
+ static void  DtaNwEvtGetDriverInfo(struct net_device* pDevice, 
+                                                            struct ethtool_drvinfo* pInfo);
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,20,0)
+ static Int  DtaNwEvtGetSettings(struct net_device* pDevice, struct ethtool_cmd* pCmd);
+ static Int  DtaNwEvtSetSettings(struct net_device* pDevice, struct ethtool_cmd* pCmd);
++#endif
+ UInt32  DtaNwEvtGetLink(struct net_device* pDevice);
+ #ifdef NO_HW_FEATURE_SUPPORT
+ static UInt32  DtaNwEvtGetRxCsum(struct net_device* pDevice);
+@@ -105,8 +107,10 @@
+ static const struct ethtool_ops  EthToolOps = 
+ {
+     .get_drvinfo = DtaNwEvtGetDriverInfo,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,20,0)
+     .get_settings = DtaNwEvtGetSettings,
+     .set_settings = DtaNwEvtSetSettings,
++#endif
+     .get_link = DtaNwEvtGetLink,
+ #ifdef PERM_ADDR_SUPPORT
+     .get_perm_addr = DtaNwEvtGetPermAddr,
+@@ -477,6 +481,7 @@
+ 
+ //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtaNwEvtGetSettings -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+ //
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,20,0)
+ static Int  DtaNwEvtGetSettings(struct net_device* pDevice, struct ethtool_cmd* pCmd)
+ {
+     DtaNwDeviceData*  pDvcData = netdev_priv(pDevice);
+@@ -536,9 +541,11 @@
+     DtDbgOut(MAX, IAL, "Exit");
+     return 0;
+ }
++#endif
+ 
+ //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtaNwEvtSetSettings -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+ //
++#if LINUX_VERSION_CODE < KERNEL_VERSION(4,20,0)
+ static Int  DtaNwEvtSetSettings(struct net_device* pDevice, struct ethtool_cmd* pCmd)
+ {
+     DtaNwDeviceData*  pDvcData = netdev_priv(pDevice);
+@@ -584,6 +591,7 @@
+ 
+     return 0;
+ }
++#endif
+ 
+ //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtaNwEvtGetLink -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+ //

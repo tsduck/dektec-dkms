@@ -8,7 +8,8 @@ Depends: dkms, linux-headers-amd64 | linux-headers-generic | linux-headers
 Description: Source code and DKMS setup for the Dektec device drivers.
  This package installs the source code and DKMS setup for the kernel modules
  of the Dektec device drivers. Each time the kernel is upgraded, the Dektec
- modules are automatically recompiled. The provided drivers are Dta, DtaNw, Dtu.
+ modules are automatically recompiled. The provided drivers are Dta, DtaNw,
+ Dtu and DtPcie.
  .
  Dektec is a manufacturer of PC add-on cards, USB devices, IP converters and
  software for the professional digital-television market. Their products are
