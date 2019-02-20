@@ -9,6 +9,8 @@ Vendor:        DekTec Digital Video B.V.
 Source0:       dektec-dkms-%{version}.tgz
 BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:     noarch
+Requires:      kernel-devel
+Requires:      kernel-headers
 Requires:      dkms
 Requires:      elfutils-libelf-devel
 
