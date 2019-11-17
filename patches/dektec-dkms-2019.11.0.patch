@@ -1,0 +1,51 @@
+diff -Naur dektec-dkms-2019.11.0/dektec-2019.11.0/Drivers/DtDrvCommon/Source/Linux/Makefile dektec-dkms-2019.11.0.fixed/dektec-2019.11.0/Drivers/DtDrvCommon/Source/Linux/Makefile
+--- dektec-dkms-2019.11.0/dektec-2019.11.0/Drivers/DtDrvCommon/Source/Linux/Makefile	2019-11-18 12:02:53.319992269 +0100
++++ dektec-dkms-2019.11.0.fixed/dektec-2019.11.0/Drivers/DtDrvCommon/Source/Linux/Makefile	2019-11-18 13:45:58.675678631 +0100
+@@ -9,6 +9,8 @@
+ 
+ COMMON_DIR := ../../../../Common/Source
+ 
++NUMLBITS = $(shell getconf LONG_BIT)
++
+ # ========================================================================================
+ # KERNELDIR can be speficied on the command line or in the environment. Below you will
+ # find the most common paths (undefine the correct one)
+@@ -108,7 +110,7 @@
+ # Default option
+ 
+ all:
+-	make MYPWD=$(PWD) -C $(KERNELDIR) KBUILD_MODPOST_NOFINAL=1 M=$(PWD) modules 
++	make MYPWD=$(PWD) -C $(KERNELDIR) KBUILD_MODPOST_NOFINAL=1 KBUILD_MODPOST_WARN=1 M=$(PWD) modules 
+ 
+ # ========================================================================================
+ # Clean all option
+diff -Naur dektec-dkms-2019.11.0/dektec-2019.11.0/Drivers/DtSal/Source/Linux/Makefile dektec-dkms-2019.11.0.fixed/dektec-2019.11.0/Drivers/DtSal/Source/Linux/Makefile
+--- dektec-dkms-2019.11.0/dektec-2019.11.0/Drivers/DtSal/Source/Linux/Makefile	2019-11-18 12:02:53.319992269 +0100
++++ dektec-dkms-2019.11.0.fixed/dektec-2019.11.0/Drivers/DtSal/Source/Linux/Makefile	2019-11-18 13:45:46.179679265 +0100
+@@ -6,6 +6,8 @@
+ 
+ COMMON_DIR := ../../../../Common/Source
+ 
++NUMLBITS = $(shell getconf LONG_BIT)
++
+ # ========================================================================================
+ # KERNELDIR can be speficied on the command line or in the environment. Below you will
+ # find the most common paths (undefine the correct one)
+@@ -104,7 +106,7 @@
+ 
+ all:
+ 	make MYPWD=$(PWD) -C $(KERNELDIR) M=$(PWD) clean
+-	make MYPWD=$(PWD) -C $(KERNELDIR) KBUILD_MODPOST_NOFINAL=1 M=$(PWD) modules
++	make MYPWD=$(PWD) -C $(KERNELDIR) KBUILD_MODPOST_NOFINAL=1 KBUILD_MODPOST_WARN=1 M=$(PWD) modules
+ 
+ # ========================================================================================
+ # Clean all option
+diff -Naur dektec-dkms-2019.11.0/dektec-2019.11.0/Makefile dektec-dkms-2019.11.0.fixed/dektec-2019.11.0/Makefile
+--- dektec-dkms-2019.11.0/dektec-2019.11.0/Makefile	2019-11-18 12:02:53.211992275 +0100
++++ dektec-dkms-2019.11.0.fixed/dektec-2019.11.0/Makefile	2019-11-18 14:09:56.543605722 +0100
+@@ -7,4 +7,4 @@
+ 	$(MAKE) -C Drivers/DtPcie/Source/Linux
+ 
+ clean:
+-	find . \( -name '.*.o.cmd' -o -name '.*.ko.cmd' -o -name '*.mod.c' -o -name '*.o' -o -name '.*.d' -o -name '*.ko' -o -name '.tmp_versions' -o -name 'modules.order' -o -name 'Module.symvers' \) -print0 | xargs -0 rm -rf
++	find . \( -name '.*.o.cmd' -o -name '.*.ko.cmd' -o -name '*.mod.c' -o -name '*.mod.cmd' -o -name '*.mod' -o -name '*.o' -o -name '.*.d' -o -name '*.ko' -o -name '.tmp_versions' -o -name 'modules.order' -o -name 'Module.symvers' \) -print0 | xargs -0 rm -rf

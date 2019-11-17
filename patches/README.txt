@@ -8,12 +8,12 @@ Patch creation guidelines:
 - Prepare the DKMS environment:
 
   $ ./build-dektec-dkms -v -p
-  build-dektec-dkms: package version is 5.24.0.91
-  build-dektec-dkms: building DKMS structure in tmp/dektec-dkms-5.24.0.91/dektec-5.24.0.91
+  build-dektec-dkms: package version is 2019.11.0
+  build-dektec-dkms: building DKMS structure in tmp/dektec-dkms-2019.11.0/dektec-2019.11.0
 
 - Try to compile the drivers:
 
-  $ VERSION=2018.05.0
+  $ VERSION=2019.11.0
   $ make -C tmp/dektec-dkms-$VERSION/dektec-$VERSION
 
 - In case of errors, cleanup and duplicate the directory tree:
