@@ -46,4 +46,4 @@ echo "=== List loaded drivers"
 lsmod | grep -e '^Module' -e '^Dt'
 
 echo "=== Recent kernel messages"
-dmesg | tail -20 | grep Dt
+sudo dmesg | tail -20 | grep Dt
