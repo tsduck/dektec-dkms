@@ -21,3 +21,4 @@ vgcore.*
 *.bak
 *.autosave
 .project
+.DS_Store
