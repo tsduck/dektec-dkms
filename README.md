@@ -104,10 +104,20 @@ Options:
   --keep
       Keep temporary files. By default, they are deleted.
 
+  -l
+  --load-drivers
+      Do not build anything, just load all installed Dektec drivers and
+      test the load.
+
   -p
   --prepare
       Only prepare the DKMS file structure in the temporary directory.
       Do not build DKMS packages, do not clean up files.
+
+  -t
+  --test-package
+      After building the package, install it, load the drivers, uninstall
+      the package.
 
   --uninstall
       Directly uninstall Dektec DKMS from the current system. Do not properly

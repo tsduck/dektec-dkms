@@ -42,6 +42,8 @@ PREPARE_ONLY=false
 UNINSTALL=false
 VERBOSE=false
 PATCH_OPTION="--silent"
+LOAD_DRIVERS=false
+TEST_PACKAGES=false
 
 #-----------------------------------------------------------------------------
 # Display help text
@@ -83,10 +85,20 @@ Options:
   --keep
       Keep temporary files. By default, they are deleted.
 
+  -l
+  --load-drivers
+      Do not build anything, just load all installed Dektec drivers and
+      test the load.
+
   -p
   --prepare
       Only prepare the DKMS file structure in the temporary directory.
       Do not build DKMS packages, do not clean up files.
+
+  -t
+  --test-package
+      After building the package, install it, load the drivers, uninstall
+      the package.
 
   --uninstall
       Directly uninstall Dektec DKMS from the current system. Do not properly
@@ -105,14 +117,15 @@ EOF
 # Basic functions
 #-----------------------------------------------------------------------------
 
-cleanexit() { $KEEP || [[ -z "$TMPDIR" ]] || rm -rf "$TMPDIR"; exit $1; }
-error()     { echo >&2 "$SCRIPT: $*"; cleanexit 1; }
-verbose()   { $VERBOSE && echo "$SCRIPT: $*"; }
-usage()     { echo >&2 "invalid command, try \"$SCRIPT --help\""; exit 1; }
+clean-exit() { $KEEP || [[ -z "$TMPDIR" ]] || rm -rf "$TMPDIR"; exit $1; }
+error()      { echo >&2 "$SCRIPT: $*"; clean-exit 1; }
+info()       { echo "$SCRIPT: $*"; }
+verbose()    { $VERBOSE && echo "$SCRIPT: $*"; }
+usage()      { echo >&2 "invalid command, try \"$SCRIPT --help\""; exit 1; }
 
 # Cleanup if interrupted.
 export TMPDIR=
-trap cleanexit SIGINT
+trap clean-exit SIGINT
 
 #-----------------------------------------------------------------------------
 # Decode command line arguments
@@ -138,9 +151,15 @@ while [[ $# -gt 0 ]]; do
         -k|--keep)
             export KEEP=true
             ;;
+        -l|--load-drivers)
+            LOAD_DRIVERS=true
+            ;;
         -p|--prepare)
             PREPARE_ONLY=true
             export KEEP=true
+            ;;
+        -t|--test-package)
+            TEST_PACKAGES=true
             ;;
         --uninstall)
             UNINSTALL=true
@@ -166,13 +185,40 @@ export TMPDIR="$SCRIPTDIR/tmp"
 VERSFILE="$SCRIPTDIR/VERSION"
     
 #-----------------------------------------------------------------------------
-# Special cleanup operation.
+# Special operations.
 #-----------------------------------------------------------------------------
 
-if $CLEAN; then
+clean-files()
+{
     verbose "cleaning up non-original files"
     rm -rf "$SCRIPTDIR"/LinuxSDK* "$SDKDIR" "$TMPDIR" "$VERSFILE"
-    cleanexit 0
+}
+
+load-drivers()
+{
+    echo "=== Unload current drivers"
+    for drv in DtPcie DtaNw Dta Dtu; do
+        sudo rmmod $drv 2>/dev/null
+    done
+
+    echo "=== Load new drivers"
+    for drv in Dtu Dta DtaNw DtPcie; do
+        sudo modprobe $drv
+    done
+
+    echo "=== List loaded drivers"
+    lsmod | grep -e '^Module' -e '^Dt'
+
+    echo "=== Recent kernel messages"
+    sudo dmesg | tail -20 | grep Dt
+}
+
+if $CLEAN; then
+    clean-files
+    clean-exit 0
+elif $LOAD_DRIVERS; then
+    load-drivers
+    clean-exit 0
 fi
 
 #-----------------------------------------------------------------------------
@@ -191,7 +237,7 @@ if $FORCE || [[ -z "$TARNAME" ]] || [[ ! -e "$TARBALL" ]]; then
     TARBALL="$SCRIPTDIR/$TARNAME"
     verbose "actual file name: $TARNAME"
     echo "$TARNAME" >"$VERSFILE"
-    curl --location "$URL" -o "$TARBALL" || cleanexit 1
+    curl --location "$URL" -o "$TARBALL" || clean-exit 1
 fi
 
 # Get the Linux SDL version from the file name.
@@ -202,7 +248,7 @@ verbose "package version is $VERSION"
 if $FORCE || [[ ! -e "$DTAPI_H" || "$TARBALL" -nt "$DTAPI_H" ]]; then
     verbose "expanding $TARBALL"
     rm -rf "$SDKDIR"
-    tar -x -C $(dirname "$TARBALL") -z -f "$TARBALL" || cleanexit 1
+    tar -x -C $(dirname "$TARBALL") -z -f "$TARBALL" || clean-exit 1
     # Make sure expanded files are more recent than the tarball.
     find "$SDKDIR" -print0 | xargs -0 touch
 fi
@@ -212,12 +258,12 @@ DKMS_DIR="$SRCDIR/dektec-$VERSION"
 DKMS_INSTALL="/usr/src/dektec-$VERSION"
 
 # In case of "download only", we are done.
-$DOWNLOAD_ONLY && cleanexit 0
+$DOWNLOAD_ONLY && clean-exit 0
 
 # Build DKMS directory.
 verbose "building DKMS structure in $DKMS_DIR"
 rm -rf "$TMPDIR"
-mkdir -p "$DKMS_DIR" || cleanexit 1
+mkdir -p "$DKMS_DIR" || clean-exit 1
 sed -e "s/{{VERSION}}/$VERSION/g" "$CONFDIR/dkms.conf.template" >"$DKMS_DIR/dkms.conf"
 sed -e "s/{{VERSION}}/$VERSION/g" "$CONFDIR/Makefile.template" >"$DKMS_DIR/Makefile"
 cp -r "$SDKDIR/Common" "$SDKDIR/Drivers" "$SDKDIR/License" "$DKMS_DIR"
@@ -234,7 +280,7 @@ cp  "$SDKDIR/License" \
     "$SRCDIR"
 
 # In case of "prepare only", we are done.
-$PREPARE_ONLY && cleanexit 0
+$PREPARE_ONLY && clean-exit 0
 
 # If there is a patch for this version of the package, apply it.
 PATCH="$SCRIPTDIR/patches/dektec-dkms-$VERSION.patch"
@@ -244,7 +290,7 @@ if [[ -e "$PATCH" ]]; then
 fi
 
 # Build a source tarball for the dektec-dkms package.
-mkdir -p "$PKGDIR" || cleanexit 1
+mkdir -p "$PKGDIR" || clean-exit 1
 SRCTARBALL="$PKGDIR/dektec-dkms-$VERSION.tgz"
 verbose "creating $SRCTARBALL"
 tar czp -f "$SRCTARBALL" -C "$TMPDIR" --owner=0 --group=0 "dektec-dkms-$VERSION"
@@ -253,10 +299,10 @@ tar czp -f "$SRCTARBALL" -C "$TMPDIR" --owner=0 --group=0 "dektec-dkms-$VERSION"
 if $INSTALL; then
     verbose "installing dkms dektec/$VERSION"
     sudo rm -rf "$DKMS_INSTALL"
-    sudo cp -r "$DKMS_DIR" "$DKMS_INSTALL" || cleanexit 1
+    sudo cp -r "$DKMS_DIR" "$DKMS_INSTALL" || clean-exit 1
     sudo install -m 644 -o root -g root "$SRCDIR/51-dta.rules" "$SRCDIR/51-dtu.rules" "$SRCDIR/51-dtpcie.rules" /etc/udev/rules.d/
     sudo dkms install -m dektec -v "$VERSION" --force
-    cleanexit 0
+    clean-exit 0
 fi
 
 # Special uninstall operation.
@@ -265,7 +311,7 @@ if $UNINSTALL; then
     sudo rmmod DtaNw Dta Dtu DtPcie
     sudo dkms remove "dektec/$VERSION" --all
     sudo rm -rf "$DKMS_INSTALL" /etc/udev/rules.d/51-dta.rules /etc/udev/rules.d/51-dtu.rules /etc/udev/rules.d/51-dtpcie.rules
-    cleanexit 0
+    clean-exit 0
 fi
 
 # Determine operating system type and version.
@@ -298,6 +344,19 @@ DISTRO="$DISTRO_PREFIX"$(sed <<<"$DISTRO_VERSION" -e 's/\..*//')
 verbose "Linux distro: $DISTRO, full version: $DISTRO_VERSION"
 ! $RPM_DISTRO && ! $DEB_DISTRO && error "unsupported Linux distro"
 
+# This function copies a file from $PKGDIR to a possibly shared repo on a mounted filesystem.
+copy-shared()
+{
+    local file=$1
+    local dir=
+    for dir in $(df | sed -e 's/.* //' -e '/^\//!d'); do
+        if [[ -d $dir/dektec-dkms/.git && -d $dir/dektec-dkms/packages ]]; then
+           info "copying $file to $dir/dektec-dkms/packages"
+           cp "$PKGDIR/$file" "$dir/dektec-dkms/packages/$file"
+        fi
+    done
+}
+
 # Build RPM distro.
 if $RPM_DISTRO; then
     verbose "building RPM package"
@@ -320,6 +379,17 @@ if $RPM_DISTRO; then
         "$RPMBUILD/RPMS/noarch/dektec-dkms-$VERSION-$RELEASE$DISTRO.noarch.rpm" \
         "$RPMBUILD/SRPMS/dektec-dkms-$VERSION-$RELEASE$DISTRO.src.rpm" \
         "$PKGDIR"
+    copy-shared dektec-dkms-$VERSION-$RELEASE$DISTRO.noarch.rpm
+    copy-shared dektec-dkms-$VERSION-$RELEASE$DISTRO.src.rpm
+
+    # Test the package if required.
+    if $TEST_PACKAGES; then
+        echo "=== Install package dektec-dkms-$VERSION-$RELEASE$DISTRO.noarch.rpm"
+        sudo rpm -Uvh "$PKGDIR/dektec-dkms-$VERSION-$RELEASE$DISTRO.noarch.rpm"
+        load-drivers
+        echo "=== Uninstall package dektec-dkms"
+        sudo rpm -e dektec-dkms
+    fi
 fi
 
 # Build DEB distro.
@@ -342,7 +412,19 @@ if $DEB_DISTRO; then
 
     # Build the binary package
     dpkg --build "$DEBDIR" "$PKGDIR"
+
+    # Collect package files.
+    copy-shared dektec-dkms_${VERSION}_all.deb
+
+    # Test the package if required.
+    if $TEST_PACKAGES; then
+        echo "=== Install package dektec-dkms_${VERSION}_all.deb"
+        sudo dpkg -i "$PKGDIR/dektec-dkms_${VERSION}_all.deb"
+        load-drivers
+        echo "=== Uninstall package dektec-dkms"
+        sudo dpkg -r dektec-dkms
+    fi
 fi
 
 # Final cleanup.
-cleanexit 0
+clean-exit 0
