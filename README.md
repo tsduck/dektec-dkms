@@ -35,7 +35,7 @@ Windows and Linux systems.
 ### Version identification
 
 Currently, there are different device drivers in the LinuxSDK package named
-`Dta`, `DtaNw`, `Dtu`, `DtPcie`. Each driver has a distinct version number.
+`Dta`, `DtaNw`, `Dtu`, `DtPcie0`, `DtPcieNw`. Each driver has a distinct version number.
 It is not possible to provide three different DKMS packages since these drivers
 interact with each other in the kernel (at least `Dta` and `DtaNw`) and
 contain common code. It is important that a consistent combination of drivers

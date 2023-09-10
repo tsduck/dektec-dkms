@@ -1,5 +1,5 @@
 #!/bin/bash
-# QtlMovie post-installation script on Ubuntu and Debian systems.
+# Dektec DKMS post-installation script on Ubuntu and Debian systems.
 
 if [[ "$1" = "configure" ]]; then
     # Fix file permissions and ownership.

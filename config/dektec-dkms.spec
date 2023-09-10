@@ -17,7 +17,8 @@ Requires:      elfutils-libelf-devel
 %description
 Provide the source code and DKMS setup for the kernel modules of the Dektec
 device drivers. Each time the kernel is upgraded, the Dektec modules are
-automatically recompiled. The provided drivers are Dta, DtaNw, Dtu, DtPcie.
+automatically recompiled. The provided drivers are Dta, DtaNw, Dtu, DtPcie,
+DtPcieNw.
 
 Dektec is a manufacturer of PC add-on cards, USB devices, IP converters and
 software for the professional digital-television market. Their products are

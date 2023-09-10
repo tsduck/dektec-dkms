@@ -197,12 +197,12 @@ clean-files()
 load-drivers()
 {
     echo "=== Unload current drivers"
-    for drv in DtPcie DtaNw Dta Dtu; do
+    for drv in DtPcieNw DtPcie DtaNw Dta Dtu; do
         sudo rmmod $drv 2>/dev/null
     done
 
     echo "=== Load new drivers"
-    for drv in Dtu Dta DtaNw DtPcie; do
+    for drv in Dtu Dta DtaNw DtPcie DtPcieNw; do
         sudo modprobe $drv
     done
 
@@ -308,7 +308,7 @@ fi
 # Special uninstall operation.
 if $UNINSTALL; then
     verbose "removing dkms dektec/$VERSION"
-    sudo rmmod DtaNw Dta Dtu DtPcie
+    sudo rmmod DtaNw Dta Dtu DtPcieNw DtPcie
     sudo dkms remove "dektec/$VERSION" --all
     sudo rm -rf "$DKMS_INSTALL" /etc/udev/rules.d/51-dta.rules /etc/udev/rules.d/51-dtu.rules /etc/udev/rules.d/51-dtpcie.rules
     clean-exit 0
